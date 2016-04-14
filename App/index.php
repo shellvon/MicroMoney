@@ -17,6 +17,6 @@ $site_info = array(
     'static_resource_path' => '/Public/static/',
 );
 
-\Microman\AutoLoader::getInstance()/*->addPath(APP_ROOT)*/->initialize();
-$app = new \Microman\MicroMan();
+\MicroMan\AutoLoader::getInstance()/*->addPath(APP_ROOT)*/->initialize();
+$app = new \MicroMan\MicroMan();
 $app->setSiteInfo($site_info)->run();

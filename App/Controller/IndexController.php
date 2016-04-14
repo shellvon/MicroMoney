@@ -9,9 +9,9 @@
 namespace Controller;
 
 use MicroMan\MicroController;
-use Microman\MicroUtility;
-use Model;
+use MicroMan\MicroUtility;
 use Utility\ValidateHelper;
+use Model;
 
 class IndexController extends MicroController
 {
@@ -42,9 +42,12 @@ class IndexController extends MicroController
         if ($this->isPost()) {
             $result = $this->doLogin();
             if ($result === true) {
-                $this->redirectExit('/index/index');
+                $this->redirectExit('/');
             }
             $data['error_msg'] = $result;
+        }
+        if (isset($_SESSION['uid'])) {
+            $this->redirectExit('/');
         }
         $this->displayTpl($data);
     }

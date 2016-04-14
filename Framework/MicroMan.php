@@ -6,7 +6,7 @@
  * Time: 下午3:28.
  */
 
-namespace Microman;
+namespace MicroMan;
 
 defined('APP_ROOT') or exit('should be define constant:APP_ROOT');
 defined('APP_DEBUG') or define('APP_DEBUG', false);

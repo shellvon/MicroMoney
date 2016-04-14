@@ -8,7 +8,7 @@
 
 namespace Model;
 
-use Microman\MicroModel;
+use MicroMan\MicroModel;
 
 /**
  * Class UserModel.

@@ -67,6 +67,9 @@ class MicroMan
 
     public function run()
     {
+        if (!session_id()) {
+            session_start();
+        }
         $this->route();
         $tmp = $this->route_path;
         $action_name = array_pop($tmp);
@@ -121,7 +124,7 @@ class MicroController
             $this->tpl_engine->setConfig('template_path', $tpl_path);
         }
         $this->tpl_engine->assign('site_name', $this->site_info['site_name']);
-        $this->tpl_engine->assign('title', '');
+        $this->tpl_engine->assign('static_path', $this->site_info['static_resource_path']);
     }
 
     /**
@@ -459,5 +462,35 @@ class MicroTemplate
         include_once $result;
 
         return ob_get_clean();
+    }
+}
+
+/**
+ * Class MicroUtility.
+ */
+class MicroUtility
+{
+    public static function getGet($key, $default = null)
+    {
+        return isset($_GET[$key]) ? $_GET[$key] : $default;
+    }
+
+    public static function getPost($key, $default = null)
+    {
+        return isset($_POST[$key]) ? $_POST[$key] : $default;
+    }
+
+    public static function getMultiPost(array $keys, $assoc = true)
+    {
+        $result = array();
+        foreach ($keys as $key) {
+            if ($assoc) {
+                $result[$key] = static::getPost($key);
+            } else {
+                $result[] = static::getPost($key);
+            }
+        }
+
+        return $result;
     }
 }

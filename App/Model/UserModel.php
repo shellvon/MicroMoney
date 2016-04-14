@@ -26,7 +26,8 @@ class UserModel extends MicroModel
     {
         $where = " where username = '{$username}' and password = '{$password}'";
         $real_sql = 'SELECT * FROM '.self::TABLE_NAME.$where;
-        $result_set = $this->pdo->query($real_sql)->fetchAll();
+        $result_set = $this->pdo->query($real_sql)->fetch();
+
         return $result_set;
     }
 }

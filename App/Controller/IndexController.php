@@ -9,13 +9,17 @@
 namespace Controller;
 
 use MicroMan\MicroController;
+use Microman\MicroUtility;
 use Model;
+use Utility\ValidateHelper;
 
 class IndexController extends MicroController
 {
     public function index()
     {
-        echo 'Index';
+        $this->displayJson(array(
+            'hello' => $_SESSION['username'],
+        ));
     }
 
     public function before()
@@ -32,9 +36,61 @@ class IndexController extends MicroController
      */
     public function login()
     {
-        $data = Model\UserModel::getInstance()->find('shellvon', 'p4s5w0rd');
-        print_r($data);
-        $this->displayJson(array());
-        // $this->displayTpl(array('username' => 'shell-von', 'title' => 'Hello world by MicroMan'), null);
+        $data = array(
+            'title' => '钱呢去哪儿呢 | Login',
+        );
+        if ($this->isPost()) {
+            $result = $this->doLogin();
+            if ($result === true) {
+                $this->redirectExit('/index/index');
+            }
+            $data['error_msg'] = $result;
+        }
+        $this->displayTpl($data);
+    }
+
+    /**
+     * 退出登录.
+     *
+     * @return bool|string
+     */
+    private function doLogin()
+    {
+        $payloads = MicroUtility::getMultiPost(array('username', 'password'));
+        $validator = new ValidateHelper();
+        $rules = array(
+            array('username,password', 'required'), // 必须且非空
+            array('username,password', 'useRegex', 'reg' => '/[a-zA-Z0-9]{6,10}/'),
+        );
+        $result = $validator->addValidator(array())->isValid($payloads, $rules);
+        if ($result !== true) {
+            return $result[0];
+        }
+
+        $username = $payloads['username'];
+        $password = $payloads['password'];
+
+        $user_info = Model\UserModel::getInstance()->find($username, $password);
+        if (empty($user_info)) {
+            return '用户名或密码错误';
+        }
+        $_SESSION['uid'] = $user_info->id;
+        $_SESSION['username'] = $user_info->username;
+        if (MicroUtility::getPost('remember') == 1) {
+            // write cookie to auto login.
+        }
+
+        return true;
+    }
+
+    public function logout()
+    {
+        if (!$this->isPost()) {
+            $this->page404();
+        } else {
+            session_destroy();
+            $_SESSION = array();
+            $this->redirectExit('/index/login');
+        }
     }
 }

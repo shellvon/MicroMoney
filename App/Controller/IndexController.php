@@ -50,7 +50,7 @@ class IndexController extends MicroController
     }
 
     /**
-     * 退出登录.
+     * 登录操作.
      *
      * @return bool|string
      */
@@ -83,6 +83,9 @@ class IndexController extends MicroController
         return true;
     }
 
+    /**
+     * 退出登录.仅POST才会退出.
+     */
     public function logout()
     {
         if (!$this->isPost()) {

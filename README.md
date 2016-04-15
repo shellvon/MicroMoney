@@ -11,9 +11,17 @@
 
 
 
-##登录洁面截图
+##登录界面截图
 
 ![登录界面截图](_res/login_snap.png)
 
 
-To be continue.
+##主页截图.
+![主页效果](_res/index_snap.png)
+
+![个人资料](_res/profile_snap.png)
+
+![添加数据](_res/add_record_snap.png)
+
+
+##To be continue.

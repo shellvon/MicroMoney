@@ -14,9 +14,9 @@ session_save_path('/tmp');
 $site_info = array(
     'template_path' => implode(DIRECTORY_SEPARATOR, array(APP_ROOT, 'View', 'Tpl')).DIRECTORY_SEPARATOR,
     'site_name' => 'MicroMoney',
-    'static_resource_path' => '/Public/static/',
+    'static_resource_path' => '/Public/static',
 );
 
-\MicroMan\AutoLoader::getInstance()/*->addPath(APP_ROOT)*/->initialize();
+\MicroMan\MicroAutoLoader::getInstance()->addPath(APP_ROOT)->initialize();
 $app = new \MicroMan\MicroMan();
 $app->setSiteInfo($site_info)->run();

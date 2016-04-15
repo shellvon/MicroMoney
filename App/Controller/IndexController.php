@@ -17,9 +17,39 @@ class IndexController extends MicroController
 {
     public function index()
     {
-        $this->displayJson(array(
-            'hello' => $_SESSION['username'],
-        ));
+        $fake_data = array(
+            'user_info' => array('nickname' => $_SESSION['username'], 'id' => $_SESSION['uid'], 'job' => 'Web Developer', 'register_time' => '2016-4-15'),
+            'current_user_cost' => array(
+                'cost' => 100,
+                'settlement' => 10.32,
+            ),
+            'names' => array(
+                'shell-von',
+                'Tom',
+                'Cat',
+                'Test'
+            ),
+            'user_data' => array(
+                'shell-von' => array(
+                    'cost' => 2,
+                    'benifit' => 4,
+                    'percent' => 40
+                ),
+            ),
+            'each_type_cost' => array(
+                '1' => array('cost' => 3,'percent' => 40,'who' => 'shell-von'),
+                '3' => array('cost' => 30,'percent' => 40, 'who' => 'Tom'),
+            ),
+            'type_map' => array(1 => array('Tom'), 2 => array('shell-von', 'Tom'), 3 => array()),
+            'date_range' => '2016-4-15 ~ 2016-4-20',
+            'data' => array(
+
+            ),
+            'header_str' => '<th>'.join('</th><th>',
+                    array('ID','支付人','支付金额','支付时间','消费消费人','支付描述','是否结算','操作')).'</th>',
+        );
+
+        $this->displayTpl($fake_data);
     }
 
     public function before()
@@ -49,7 +79,7 @@ class IndexController extends MicroController
         if (isset($_SESSION['uid'])) {
             $this->redirectExit('/');
         }
-        $this->displayTpl($data);
+        $this->displayTpl($data, null, false);
     }
 
     /**
@@ -98,5 +128,87 @@ class IndexController extends MicroController
             $_SESSION = array();
             $this->redirectExit('/index/login');
         }
+    }
+
+    /**
+     * 搜索接口.
+     */
+    public function search()
+    {
+        $query = MicroUtility::getGet('q');
+        $this->forbidden();
+    }
+
+    /**
+     *
+     */
+    public function command(){
+        if(!$this->isPost()) {
+            $this->forbidden();
+        }
+        $action = MicroUtility::getPost('action');
+        switch(strtolower($action)) {
+            case 'add':
+                $this->addCommand();
+                break;
+            case 'update':
+                $this->updateCommand();
+                break;
+            case 'deal':
+                $this->dealCommand();
+                break;
+            case 'dealbatch':
+                $this->dealBatchCommand();
+                break;
+            default:
+                $this->displayJson(array('error' => 0, 'msg' => 'invalid action'));
+        }
+    }
+
+    /**
+     * 添加记录.
+     */
+    private function addCommand(){
+        //TODO: add validator and logs.
+        $new_data = MicroUtility::getMultiPost(array('paid_username', 'cost', 'when', 'type', 'description'));
+        $result = true;
+        if (!$result) {
+            $this->displayJson(array('error'=>1, 'msg'=>'加入失败'));
+        } else {
+            $this->displayJson(array('error'=>0, 'msg'=>'加入成功'));
+        }
+    }
+
+    /**
+     * 更新记录.
+     */
+    private function updateCommand(){
+        $id = $_POST['id'];
+        $new_data = MicroUtility::getMultiPost(array('paid_username', 'cost', 'when', 'type', 'description'));
+        if(empty($id) || !is_numeric($id)){
+            die(json_encode(array('error'=>1, 'msg'=>'参数不合法')));
+        }
+        $result = true;
+        $this->displayJson(array('error'=>$result?0 : 1, 'msg'=>$result?'成功':"失败"));
+
+    }
+
+    /**
+     * 单个处理.
+     */
+    private function dealCommand(){
+        $id = MicroUtility::getPost('id');
+        if(empty($id) || !is_numeric($id)){
+            die(json_encode(array('error'=>1, 'msg'=>'参数不合法')));
+        }
+        $result = false;
+        $this->displayJson(array('error'=> $result ? 0 : 1, 'msg'=>$result?'成功':"失败"));
+    }
+
+    /**
+     * 批量处理.
+     */
+    private function dealBatchCommand(){
+        $this->page404();
     }
 }

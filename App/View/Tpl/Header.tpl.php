@@ -20,7 +20,14 @@
     <link href="<?php echo $site_info['static_resource_path']?>/dist/css/skins/_all-skins.min.css" rel="stylesheet" type="text/css" />
     <link href="<?php echo $site_info['static_resource_path']?>/plugins/daterangepicker/daterangepicker-bs3.css" rel="stylesheet" type="text/css" />
     <link href="<?php echo $site_info['static_resource_path']?>/plugins/datepicker/datepicker3.css" rel="stylesheet" type="text/css" />
+    <!-- jQuery 2.1.4 -->
+    <script src="<?php echo $site_info['static_resource_path']?>/plugins/jQuery/jQuery-2.1.4.min.js" type="text/javascript"></script>
 
+    <style type="text/css">
+        .datepicker{
+            z-index:1151 !important;
+        }
+    </style>
 </head>
 <body class="skin-blue sidebar-mini">
     <div class="wrapper">
@@ -28,9 +35,9 @@
             <!-- Logo -->
             <a href="index.php" class="logo">
                 <!-- mini logo for sidebar mini 50x50 pixels -->
-                <span class="logo-mini"><b>钱</b>呢</span>
+                <span class="logo-mini"><?php echo $site_info['site_logo']['mini']?></span>
                 <!-- logo for regular state and mobile devices -->
-                <span class="logo-lg"><b>钱呢</b>去哪里呀</span>
+                <span class="logo-lg"><?php echo $site_info['site_logo']['large']?></span>
             </a>
             <!-- Header Navbar: style can be found in header.less -->
             <nav class="navbar navbar-static-top" role="navigation">
@@ -47,15 +54,15 @@
                         <!-- User Account: style can be found in dropdown.less -->
                         <li class="dropdown user user-menu">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                                <img src="<?php echo $site_info['static_resource_path']?>/dist/img/user2-160x160.jpg" class="user-image" alt="User Image" />
+                                <img src="<?php echo $site_info['static_resource_path'].'/'.$user_info['avatar']?>" class="user-image" alt="User Image" />
                                 <span class="hidden-xs"> <?php echo $user_info['nickname']?></span>
                             </a>
                             <ul class="dropdown-menu">
                                 <!-- User image -->
                                 <li class="user-header">
-                                    <img src="<?php echo $site_info['static_resource_path']?>/dist/img/user2-160x160.jpg" class="img-circle" alt="User Image" />
+                                    <img src="<?php echo $site_info['static_resource_path'].'/'.$user_info['avatar']?>" class="img-circle" alt="User Image" />
                                     <p>
-                                        <?php echo $user_info['nickname']."-".$user_info['job']?>
+                                        <?php echo $user_info['nickname'].'-'.$user_info['job']?>
                                         <small>Member since Nov. 2012</small>
                                     </p>
                                 </li>

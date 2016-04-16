@@ -2,20 +2,17 @@
 /**
  * Created by PhpStorm.
  * User: shellvon
- * Date: 16/4/14
- * Time: 下午9:09.
+ * Date: 16/4/16
+ * Time: 下午6:37.
  */
 
 namespace Model;
 
 use MicroMan\MicroModel;
 
-/**
- * Class UserModel.
- */
-class UserModel extends MicroModel
+class CostTypeModel extends MicroModel
 {
-    const TABLE_NAME = 'user';
+    const TABLE_NAME = 'cost_type';
 
     /**
      * @return static

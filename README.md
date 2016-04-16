@@ -24,4 +24,11 @@
 ![添加数据](_res/add_record_snap.png)
 
 
+
+##Change Logs
+
++ 2016-2-14 创建该项目,实现MicroMan原型.
++ 2016-2-15 导入AdminLTE支持.增加MicroTemplate/Utility支持.
++ 2016-2-16 加入数据库支持,增加MicroDatabase
+
 ##To be continue.

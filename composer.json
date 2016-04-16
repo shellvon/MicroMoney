@@ -1,0 +1,19 @@
+{
+    "name": "shellvon/micro-money",
+    "description": "A simple web app with One file MVC framework(MicroMan)",
+    "config":{"vendor-dir": "Vendor"},
+    "require": {
+        "catfan/medoo": "^1.0"
+    },
+    "scripts":{
+        "post-update-cmd":"rm -rf Vendor/composer && rm -rf Vendor/autoload.php",
+        "post-install-cmd":"rm -rf Vendor/composer && rm -rf Vendor/autoload.php"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "shellvon",
+            "email": "iamshellvon@gmail.com"
+        }
+    ]
+}

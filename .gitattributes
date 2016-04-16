@@ -1,0 +1,2 @@
+# see => https://github.com/github/linguist#using-gitattributes
+App/Public/static/* linguist-vendored

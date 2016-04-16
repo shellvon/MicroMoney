@@ -153,7 +153,7 @@ class MicroController
         if ($tpl_path != null) {
             $this->tpl_engine->setConfig('template_path', $tpl_path);
         }
-        $this->tpl_engine->assign('title', isset($this->site_info['site_name']) ? $this->site_info['site_name']: "{$this->controller_name}/{$this->action_name}");
+        $this->tpl_engine->assign('title', isset($this->site_info['site_name']) ? $this->site_info['site_name'] : "{$this->controller_name}/{$this->action_name}");
         $this->tpl_engine->assign('site_info', $this->site_info);
     }
 
@@ -175,7 +175,7 @@ class MicroController
     public function forbidden()
     {
         // set header code ?
-        echo "403 Forbidden";
+        echo '403 Forbidden';
     }
     /**
      * 重定向.
@@ -298,10 +298,8 @@ class MicroController
  */
 class MicroModel
 {
-    /**
-     * @var \PDO
-     */
-    protected $pdo = null;
+    const TABLE_NAME = '';
+    protected $db_engine = null;
 
     protected static $instances = array();
 
@@ -310,24 +308,7 @@ class MicroModel
      */
     public function __construct()
     {
-        $this->buildDatabaseConn();
-    }
-
-    /**
-     * Model里面建立数据库连接.Ugly.
-     */
-    protected function buildDatabaseConn()
-    {
-        try {
-            $options = array(\PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_OBJ, \PDO::ATTR_ERRMODE => \PDO::ERRMODE_WARNING);
-            $this->pdo = new \PDO(DB_TYPE.':host='.DB_HOST.';dbname='.DB_NAME, DB_USER, DB_PASS, $options);
-        } catch (\PDOException $ex) {
-            echo 'db connection established failed';
-            if (APP_DEBUG) {
-                echo $ex->getMessage();
-            }
-            exit(1);
-        }
+        $this->db_engine = MicroDatabase::getInstance();
     }
 
     /**
@@ -353,6 +334,31 @@ class MicroModel
 
         return static::$instances[$name];
     }
+
+    public function getTableName()
+    {
+        return self::TABLE_NAME;
+    }
+
+    public function getOne($condition = null, $fields = null)
+    {
+        return $this->db_engine->select($this->getTableName(), $fields, $condition, 1);
+    }
+
+    public function getAll($condition = null, $fields = null, $assoc_key = null)
+    {
+        $result = $this->db_engine->select($this->getTableName(), $fields, $condition);
+        if (!empty($assoc_key)) {
+            $arr = array();
+            foreach ($result as $row) {
+                $arr[$row[$assoc_key]] = $row;
+            }
+
+            return $arr;
+        }
+
+        return $result;
+    }
 }
 
 /**
@@ -361,7 +367,7 @@ class MicroModel
  */
 class MicroAutoLoader
 {
-    private static $instance;
+    private static $instance = null;
     protected static $path = array();
 
     private function __construct()
@@ -477,25 +483,17 @@ class MicroTemplate
         }
     }
 
-    /**
-     * 配置Config.
-     *
-     * @param array $config
-     */
-    public function config(array $config)
+    public function setConfig($k, $v = null)
     {
-        $this->config = $config;
-    }
+        if (is_array($k)) {
+            foreach ($k as $key => $value) {
+                $this->config[$key] = $value;
+            }
+        } else {
+            $this->config[$k] = $v;
+        }
 
-    /**
-     * 以key,value形式配置某一个config的值.
-     *
-     * @param $key
-     * @param $value
-     */
-    public function setConfig($key, $value)
-    {
-        $this->config[$key] = $value;
+        return $this;
     }
 
     /**
@@ -605,7 +603,7 @@ class MicroTemplate
         }
         extract($this->tpl_vars);
         ob_start();
-        include_once($result);
+        include_once $result;
 
         return ob_get_clean();
     }
@@ -662,5 +660,452 @@ class MicroUtility
         }
 
         return $result;
+    }
+}
+
+/**
+ * 数据库相关.灵感来自medoo => http://medoo.in.
+ */
+class MicroDatabase
+{
+    /**
+     * @var \PDO
+     */
+    protected $pdo = null;
+
+    protected static $instance = null;
+
+    protected $config = null;
+
+    protected $connected = false;
+
+    protected $last_sql = '';
+
+    const INSERT_IN_DUP_NONE = 0;
+    const INSERT_ON_DUP_IGNORE = 1;
+    const INSERT_ON_DUP_UPDATE = 2;
+
+    private function __construct()
+    {
+        // default configuration.
+        $this->config = array(
+            'db_type' => DB_TYPE,
+            'db_host' => DB_HOST,
+            'db_name' => DB_NAME,
+            'db_user' => DB_USER,
+            'db_pass' => DB_PASS,
+            'db_port' => defined(DB_PORT) ? DB_PORT : 3306,
+            'charset' => 'UTF8',
+        );
+    }
+
+    /**
+     * 反序列化,for safe.
+     */
+    private function __wakeup()
+    {
+        // TODO: Implement __wakeup() method.
+    }
+
+    /**
+     * 单例,不许克隆.
+     */
+    private function __clone()
+    {
+        // TODO: Implement __clone() method.
+    }
+
+    /**
+     * 返回对应的实例.
+     *
+     * @return static
+     */
+    public static function getInstance()
+    {
+        if (!static::$instance) {
+            static::$instance = new static();
+        }
+
+        return static::$instance;
+    }
+
+    /**
+     * 修改配置,如果$k是数组,循环设置里面的key,value
+     * 否则以$k为键,$v为对应的配置值.
+     *
+     * @param string|array $k
+     * @param mixed        $v
+     *
+     * @return $this
+     */
+    public function setConfig($k, $v = null)
+    {
+        if (is_array($k)) {
+            foreach ($k as $key => $value) {
+                $this->config[$key] = $value;
+            }
+        } else {
+            $this->config[$k] = $v;
+        }
+
+        return $this;
+    }
+
+    /**
+     * 获取配置信息.如果$k为空,返回当前所有配置信息.否则返回对应$k的信息.
+     *
+     * @param string|null $k
+     *
+     * @return mixed
+     */
+    public function getConfig($k = null)
+    {
+        if (is_null($k)) {
+            return $this->config;
+        }
+
+        return isset($this->config[$k]) ? $this->config[$k] : null;
+    }
+
+    /**
+     * 建立数据库连接.
+     *
+     * @throws \Exception
+     */
+    protected function buildDatabaseConn()
+    {
+        $db_type = isset($this->config['db_type']) ? $this->config['db_type'] : 'mysql';
+        $db_host = isset($this->config['db_host']) ? $this->config['db_host'] : '127.0.0.1';
+        $username = isset($this->config['db_user']) ? $this->config['db_user'] : null;
+        $password = isset($this->config['db_pass']) ? $this->config['db_pass'] : null;
+        $db_port = isset($this->config['db_port']) ? $this->config['db_port'] : 3306;
+
+        // see => http://php.net/manual/en/pdo.construct.php#113498
+        $charset = isset($this->config['charset']) ? $this->config['charset'] : 'UTF8';
+
+        /*
+         * A key=>value array of driver-specific connection options.
+         * http://php.net/manual/en/pdo.drivers.php
+         */
+        $options = isset($this->config['options']) ? $this->config['options'] : null;
+        if (!static::isSupported($db_type)) {
+            throw new \Exception("sorry, database type:{$db_type} not supported in your php env");
+        }
+        $dsn = '';
+        switch (strtolower($db_type)) {
+            case 'sqlite':
+                // there, $host is the database absolute file path
+                // @see => http://php.net/manual/zh/ref.pdo-sqlite.connection.php
+                $dsn = $db_type.':'.$this->config['host'];
+                break;
+            case 'mysql':
+                $dsn = $db_type.':host='.$db_host.(empty($db_port) ? ';port='.$db_port : '').';dbname='.$this->config['db_name'].';charset='.$charset;
+                break;
+            default:
+                break;
+        }
+        $this->pdo = new \PDO($dsn, $username, $password, $options);
+    }
+
+    /**
+     * 连接DB,如果已经连过了,什么也不做.
+     *
+     * @throws \Exception
+     */
+    public function connect()
+    {
+        if (!$this->connected) {
+            $this->buildDatabaseConn();
+            $this->connected = true;
+        }
+    }
+
+    /**
+     * 判断给定的数据库类型平台是否支持.
+     *
+     * @see http://php.net/manual/zh/pdo.getavailabledrivers.php
+     *
+     * @param $db_type
+     *
+     * @return bool
+     */
+    public static function isSupported($db_type)
+    {
+        return in_array($db_type, \PDO::getAvailableDrivers());
+    }
+
+    /**
+     * 查询语句.
+     *
+     * @param string $table     表名
+     * @param mixed  $fields    查询的字段.
+     * @param array  $condition 查询条件,关联数组.可选.
+     * @param int    $limit     返回的记录数,默认所有.
+     * @param int    $start     记录开始,用于limit, zero-based.
+     * @param string $order_by  排序依赖.
+     *
+     * @return array 关联数组.
+     */
+    public function select($table, $fields = null, $condition = null, $limit = null, $start = null, $order_by = null)
+    {
+        if (!$this->connected) {
+            $this->connect();
+        }
+        $real_sql = 'SELECT '.$this->getFields($fields).' FROM '.$table.' WHERE '.$this->buildWhere($condition);
+        if (!empty($order_by)) {
+            $real_sql .= ' ORDER BY '.$order_by;
+        }
+        if (!is_null($limit)) {
+            $real_sql .= ' LIMIT '.(!is_null($start) ? "$start, " : '')."$limit";
+        }
+        $pstmt = $this->pdo->prepare($real_sql);
+        $this->bindValue($pstmt, $condition);
+        $this->last_sql = $pstmt->queryString;
+        $pstmt->execute();
+        if (!is_null($limit) && $limit == 1) {
+            return $pstmt->fetch(\PDO::FETCH_ASSOC);
+        } else {
+            return $pstmt->fetchAll(\PDO::FETCH_ASSOC);
+        }
+    }
+
+    /**
+     * 更新语句.
+     *
+     * @param string $table     表名.
+     * @param array  $params    参数,关联数组.
+     * @param array  $condition 更新条件,关联数组.
+     *
+     * @return bool|int 成功返回更新条数,否则返回false
+     */
+    public function update($table, $params, $condition)
+    {
+        $param_prefix = 'param_';
+        $where_prefix = 'where_';
+        $set_string = $this->buildSetParams($params, $param_prefix);
+        $where_string = $this->buildWhere($condition, 'AND', $where_prefix);
+        $real_sql = 'UPDATE '.$table.' SET '.$set_string.' WHERE '.$where_string;
+        $pstmt = $this->pdo->prepare($real_sql);
+        $this->bindValue($pstmt, $params, $param_prefix);
+        $this->bindValue($pstmt, $condition, $where_prefix);
+        $this->last_sql = $pstmt->queryString;
+        $result = $pstmt->execute();
+
+        return $result ? $pstmt->rowCount() : false;
+    }
+
+    /**
+     * @param \PDOStatement $pstmt
+     * @param $data
+     * @param string $prefix
+     *
+     * @return MicroDatabase
+     */
+    private function bindValue(&$pstmt, $data, $prefix = '')
+    {
+        foreach ((array) $data as $key => $val) {
+            $pstmt->bindValue(':'.$prefix.$key, $val);
+        }
+
+        return $this;
+    }
+
+    /**
+     * 插入语句.
+     *
+     * @see http://stackoverflow.com/questions/548541/insert-ignore-vs-insert-on-duplicate-key-update
+     *
+     * @param string $table  表名.
+     * @param array  $params 插入数据.
+     * @param int    $on_dup 插入方式.
+     *
+     * @return int Last insert Id.
+     */
+    public function insert($table, $params, $on_dup = self::INSERT_IN_DUP_NONE)
+    {
+        $columns = '';
+        $values = '';
+        $updates = array();
+        foreach ($params as $column => $value) {
+            $columns .= "{$column},";
+            $values .=  ":{$column},";
+            $updates[] = $column.'='.(is_null($value) ? 'NULL' : $this->quote($value));
+        }
+        // 去掉逗号.
+        $columns = substr($columns, 0, strlen($columns) - 1);
+        $values = substr($values, 0, strlen($values) - 1);
+
+        $sql_ignore = '';
+        if ($on_dup === self::INSERT_ON_DUP_IGNORE) {
+            $sql_ignore = 'IGNORE';
+        }
+        $sql_on_dup = '';
+        if ($on_dup == self::INSERT_ON_DUP_UPDATE) {
+            $sql_on_dup = 'ON DUPLICATE KEY UPDATE '.implode(',', $updates);
+        }
+        $real_sql = "INSERT {$sql_ignore} INTO {$table} ({$columns}) VALUES ({$values}) $sql_on_dup";
+        $pstmt = $this->pdo->prepare($real_sql);
+        $this->bindValue($pstmt, $params);
+        $this->last_sql = $pstmt->queryString;
+
+        return $pstmt->execute() ? $this->pdo->lastInsertId() : false;
+    }
+
+    /**
+     * 加引号.
+     *
+     * @param $str
+     *
+     * @return string
+     */
+    protected function quote($str)
+    {
+        return $this->pdo->quote($str);
+    }
+    /**
+     * 删除语句.
+     *
+     * @param string $table     表名.
+     * @param null   $condition 删除条件,空删除所有.
+     *
+     * @return bool|int false表示失败.
+     */
+    public function delete($table, $condition = null)
+    {
+        $real_sql = 'DELETE FROM '.$table.' WHERE '.$this->buildWhere($condition);
+        $pstmt = $this->pdo->prepare($real_sql);
+        $this->bindValue($pstmt, $condition);
+        $this->last_sql = $pstmt->queryString;
+
+        return $pstmt->execute() ? $pstmt->rowCount() : false;
+    }
+
+    /**
+     * 创建查询字段.
+     *
+     * @param mixed $fields 查询的字段.
+     *
+     * @return string
+     */
+    protected function getFields($fields)
+    {
+        if (empty($fields)) {
+            $fields = '*';
+        } elseif (is_array($fields)) {
+            $fields = implode(',', $fields);
+        }
+
+        return $fields;
+    }
+
+    /**
+     * 创建一个PrepareSQL.
+     *
+     * @param array  $params  数据.
+     * @param string $add_str 连接字符串.
+     * @param string $prefix  前缀.
+     *
+     * @return string
+     */
+    private function buildPreparedSql($params, $add_str, $prefix = '')
+    {
+        $sql = '';
+        $str_added = false;
+        foreach ($params as $key => $val) {
+            if ($str_added) {
+                $sql .= " {$add_str} ";
+            } else {
+                $str_added = true;
+            }
+            $sql .= "{$key} = :{$prefix}{$key}";
+        }
+
+        return $sql;
+    }
+
+    /**
+     * 创建用于更新条件的数据(Where 语句).
+     *
+     * @param array  $condition 更新条件.
+     * @param string $logical   连接逻辑,默认AND
+     * @param string $prefix    前缀.
+     *
+     * @return string
+     */
+    protected function buildWhere($condition, $logical = 'AND', $prefix = '')
+    {
+        if (empty($condition)) {
+            return '1=1';
+        }
+
+        return $this->buildPreparedSql($condition, $logical, $prefix);
+    }
+
+    /**
+     * 创建用于更新字段的数据(update Set语句).
+     *
+     * @param array  $params 参数.
+     * @param string $prefix 前缀.
+     *
+     * @return string
+     */
+    protected function buildSetParams($params, $prefix = '')
+    {
+        return $this->buildPreparedSql($params, ',', $prefix);
+    }
+
+    /**
+     * 获取最后一次执行SQL.
+     *
+     * @return string
+     */
+    public function getLastSql()
+    {
+        return $this->last_sql;
+    }
+
+    /**
+     * @param $sql
+     * @param array $params
+     * @param int   $type
+     *
+     * @return array|bool|int
+     */
+    public function query($sql, $params = array(), $type = \PDO::FETCH_ASSOC)
+    {
+        return $this->exec($sql, $params, true, $type);
+    }
+
+    /**
+     * @param $sql
+     * @param array $params
+     *
+     * @return array|bool|int
+     */
+    public function execute($sql, $params = array())
+    {
+        return $this->exec($sql, $params, false);
+    }
+
+    /**
+     * @param $sql
+     * @param array $params
+     * @param bool  $query
+     * @param int   $type
+     *
+     * @return array|bool|int
+     */
+    private function exec($sql, $params = array(), $query = false, $type = \PDO::FETCH_ASSOC)
+    {
+        $pstmt = $this->pdo->prepare($sql);
+        foreach ((array) $params as $key => $val) {
+            $pstmt->bindValue($key, $val);
+        }
+        $result = $pstmt->execute();
+        if ($query) {
+            return $pstmt->fetchAll($type);
+        }
+
+        return $result == true ? $pstmt->rowCount() : false;
     }
 }

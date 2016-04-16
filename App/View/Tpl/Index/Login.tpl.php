@@ -24,7 +24,7 @@
 <body class="login-page">
 <div class="login-box">
     <div class="login-logo">
-        <a href="/"><b>钱呢</b>去哪里呀</a>
+        <a href="/"><?php echo $site_info['site_logo']['large']?></a>
     </div><!-- /.login-logo -->
     <div class="login-box-body">
         <p class="login-box-msg"><?php echo isset($error_msg) ? $error_msg : '';?></p>

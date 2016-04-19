@@ -33,7 +33,7 @@
     <div class="wrapper">
         <header class="main-header">
             <!-- Logo -->
-            <a href="index.php" class="logo">
+            <a href="/" class="logo">
                 <!-- mini logo for sidebar mini 50x50 pixels -->
                 <span class="logo-mini"><?php echo $site_info['site_logo']['mini']?></span>
                 <!-- logo for regular state and mobile devices -->
@@ -84,7 +84,7 @@
                                         <a href="#" class="btn btn-default btn-flat" data-toggle="modal" data-target="#userinfoModal" >个人资料</a>
                                     </div>
                                     <div class="pull-right">
-                                        <form action="/index/logout" method="post">
+                                        <form action="/user/logout" method="post">
                                             <button class="btn btn-danger btn-flat">退出平台</button>
                                         </form>
                                     </div>
@@ -103,7 +103,7 @@
                 <!-- Sidebar user panel -->
                 <div class="user-panel">
                     <div class="pull-left image">
-                        <img src="<?php echo $site_info['static_resource_path']?>/dist/img/user2-160x160.jpg" class="img-circle" alt="User Image" />
+                        <img src="<?php echo $site_info['static_resource_path'].'/'.$user_info['avatar']?>" class="img-circle" alt="User Image" />
                     </div>
                     <div class="pull-left info">
                         <p><?php echo $user_info['nickname'];?></p>
@@ -151,3 +151,200 @@
             </section>
             <!-- /.sidebar -->
         </aside>
+        <!-- Modal -->
+        <div class="modal fade" id="dealModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title">结算</h4>
+                    </div>
+                    <div class="modal-body">
+                        <h3 class="text-center alert alert-danger">您真的要结算这笔交易么?</h3>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                        <button type="button" data-action='deal' class="btn btn-danger">确认结算(Danger)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="userinfoModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title">个人资料</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="box">
+                            <!-- User image -->
+                            <div class="user-header">
+                                <img src="<?php echo $site_info['static_resource_path'].'/'.$user_info['avatar']?>" class="center-block img-circle" alt="User Image" />
+                                <div class="text-center text-blue">
+                                    <?php echo $user_info['nickname'].'-'.$user_info['job']?>
+                                    <div class="text-center text-black">Member since Nov. 2012</div>
+                                </div>
+                            </div>
+                            <!-- Menu Body -->
+
+                            <div class="user-body">
+                                <div class="text-center alert alert-danger">想修改密码么？然而我并没有实现~啊哈哈</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" data-dismiss="modal" class="btn center-block btn-primary">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="updateModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                        <h4 class="modal-title">修改记录</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="box-body table-responsive ">
+                            <div class="box-body">
+                                <div class="row form-horizontal">
+                                    <div class="col-md-12">
+                                        <div class="form-group">
+                                            <label class="col-sm-4 control-label">支付人</label><div class="col-sm-6">
+                                                <select class="form-control">
+                                                    <?php
+                                                    foreach ($user_lst as $uid => $user) {
+                                                        echo "<option value='$uid'>".$user['nickname'].'</option>';
+                                                    }
+                                                    ?>
+                                                </select></div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="col-sm-4 control-label">支付金额</label>
+                                            <div class="col-sm-6">
+                                                <input class="form-control" type="text" placeholder="金额">
+                                            </div>
+
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="col-sm-4 control-label">支付时间</label>
+                                            <div class="col-sm-6">
+                                                <input class="form-control datepicker" type="text" placeholder="时间"></div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="col-sm-4 control-label">消费人</label>
+                                            <div class="col-sm-6">
+                                                <select class="form-control">
+                                                    <?php
+                                                    foreach ($type_map as $cost_type) {
+                                                        echo '<option value='.$cost_type['id'].'>'.$cost_type['description'].'</option>';
+                                                    }
+                                                    ?>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="col-sm-4 control-label">支付描述</label>
+                                            <div class="col-sm-6">
+                                                <textarea class="form-control"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!-- /.box-body -->
+                            </div><!-- /.box -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                        <button type="button" id="modified" data-action='update' class="btn btn-primary">保存记录</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            $(document).on('click', 'a[data-toggle="modal"]', function(){
+                var id = $(this).data('id');
+                var action = $(this).data('action');
+                var form = $("#updateModal").find('.form-group');
+                var title_el =  $("#updateModal").find('h4.modal-title');
+                console.log('click me:'+action);
+                if (action == 'update') {
+                    var el = $('#row-'+id+'>td');
+                    $("#modified").data('id',id);
+                    $("#modified").data('action',action);
+                    //修改标题
+                    $(title_el).text('更新记录');
+                    //修改选择人名字
+                    $(form[0]).find('option[value="'+$(el[0]).text()+'"]').attr('selected','selected');
+                    //金额
+                    $(form[1]).find('input').val($(el[1]).text());
+                    //支付时间
+                    $(form[2]).find('input').val($(el[2]).text());
+                    //消费人
+                    $(form[3]).find('option').filter(function(index){
+                        return $(this).text().trim() == $(el[3]).text().trim();
+                    }).attr('selected', 'selected');
+                    //支付描述
+                    $(form[4]).find('textarea').val($(el[4]).text());
+                } else if(action == 'add') {
+
+                    $(title_el).text('新增记录');
+                    $("#modified").data('action',action);
+                    var default_name = "<?php echo $user_info['nickname'];?>";
+                    //默认为当前用户
+                    $(form[0]).find('option[value="'+default_name+'"]').attr('selected','selected');
+                    //默认为当前时间
+                    Date.prototype.Y_m_d = function() {
+                        var yyyy = this.getFullYear().toString();
+                        var mm = (this.getMonth()+1).toString(); // getMonth() is zero-based
+                        var dd  = this.getDate().toString();
+                        return yyyy +'-'+ (mm[1]?mm:"0"+mm[0]) + '-'+ (dd[1]?dd:"0"+dd[0]); // padding
+                    };
+                    $(form[2]).find('input').attr('value',new Date().Y_m_d());
+                    //支付描述，默认为买菜
+                    $(form[4]).find('textarea').val("买菜");
+                } else if (action == 'deal') {
+                    $("#dealModal").find('.modal-body>h3').text('您真的要结算这笔交易么？');
+                    $("#dealModal").find('button[data-action]').data('action','deal').data('id',id);
+
+                } else if (action == 'dealBatch') {
+                    $("#dealModal").find('.modal-body>h3').text('您真的要结算所有么？');
+                    $("#dealModal").find('button[data-action]').data('action','dealBatch');
+                }
+            });
+            $('button[data-action]').click(function(){
+                var params = {id:$(this).data('id'),action:$(this).data('action')};
+                var form = $("#updateModal").find('.form-group');
+                console.log(params);
+                if ('deal' != params.action && 'dealBatch' != params.action) {
+                    var form = $("#updateModal").find('.form-group');
+                    params['paid_uid'] =  $(form[0]).find('option:selected').val();
+                    params['cost'] =  $(form[1]).find('input').val();
+                    params['paid_day'] =  $(form[2]).find('input').val();
+                    params['type'] = $(form[3]).find('option:selected').val();
+                    params['description'] = $(form[4]).find('textarea').val();
+                    for(var el in params){
+                        if (el!='id' && !params[el]){
+                            alert('参数不能为空，请填写所有字段！');
+                            console.log(el);
+                            return false;
+                        }
+                    }
+                    if(!params.id && params.action=='update') {
+                        alert('不合法的操作!');
+                        return false;
+                    }
+                }
+                $.post('/index/command',params,function(data){
+                    alert(data.msg);
+                    if(!data.error){
+                        window.location.reload();
+                    }
+                });
+            });
+        </script>

@@ -170,12 +170,14 @@ class MicroController
     public function page404()
     {
         echo "<h1 style='text-align: center'> 404 Page Not Found</h1>";
+        exit(0);
     }
 
     public function forbidden()
     {
         // set header code ?
         echo '403 Forbidden';
+        exit(0);
     }
     /**
      * 重定向.
@@ -221,7 +223,7 @@ class MicroController
             $msg = json_encode($data, $flag);
         }
         header('Content-Type:application/json; charset=utf-8');
-        echo $msg;
+        exit($msg);
     }
 
     /**
@@ -358,6 +360,32 @@ class MicroModel
         }
 
         return $result;
+    }
+
+    public function query($sql, $params = array(), $type = \PDO::FETCH_ASSOC)
+    {
+        return $this->db_engine->query($sql, $params, $type);
+    }
+    /**
+     * @param array $params 需要插入的数据.
+     * @param int   $on_dup 插入模式.ignore .update.
+     *
+     * @return int|false 返回last_insert_id,失败返回false.z
+     */
+    public function insert($params, $on_dup = MicroDatabase::INSERT_IN_DUP_NONE)
+    {
+        return $this->db_engine->insert($this->getTableName(), $params, $on_dup);
+    }
+
+    /**
+     * @param $params
+     * @param $condition
+     *
+     * @return bool|int
+     */
+    public function update($params, $condition)
+    {
+        return $this->db_engine->update($this->getTableName(), $params, $condition);
     }
 }
 
@@ -787,7 +815,13 @@ class MicroDatabase
          * A key=>value array of driver-specific connection options.
          * http://php.net/manual/en/pdo.drivers.php
          */
-        $options = isset($this->config['options']) ? $this->config['options'] : null;
+        if (isset($this->config['options'])) {
+            $options = $this->config['options'];
+        } else {
+            $options = array(
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+            );
+        }
         if (!static::isSupported($db_type)) {
             throw new \Exception("sorry, database type:{$db_type} not supported in your php env");
         }
@@ -880,6 +914,9 @@ class MicroDatabase
      */
     public function update($table, $params, $condition)
     {
+        if (!$this->connected) {
+            $this->connect();
+        }
         $param_prefix = 'param_';
         $where_prefix = 'where_';
         $set_string = $this->buildSetParams($params, $param_prefix);
@@ -919,15 +956,18 @@ class MicroDatabase
      * @param array  $params 插入数据.
      * @param int    $on_dup 插入方式.
      *
-     * @return int Last insert Id.
+     * @return int|bool Last insert Id.
      */
     public function insert($table, $params, $on_dup = self::INSERT_IN_DUP_NONE)
     {
+        if (!$this->connected) {
+            $this->connect();
+        }
         $columns = '';
         $values = '';
         $updates = array();
         foreach ($params as $column => $value) {
-            $columns .= "{$column},";
+            $columns .= "`{$column}`,";
             $values .=  ":{$column},";
             $updates[] = $column.'='.(is_null($value) ? 'NULL' : $this->quote($value));
         }
@@ -960,6 +1000,10 @@ class MicroDatabase
      */
     protected function quote($str)
     {
+        if (!$this->connected) {
+            $this->connect();
+        }
+
         return $this->pdo->quote($str);
     }
     /**
@@ -972,6 +1016,9 @@ class MicroDatabase
      */
     public function delete($table, $condition = null)
     {
+        if (!$this->connected) {
+            $this->connect();
+        }
         $real_sql = 'DELETE FROM '.$table.' WHERE '.$this->buildWhere($condition);
         $pstmt = $this->pdo->prepare($real_sql);
         $this->bindValue($pstmt, $condition);
@@ -1097,6 +1144,9 @@ class MicroDatabase
      */
     private function exec($sql, $params = array(), $query = false, $type = \PDO::FETCH_ASSOC)
     {
+        if (!$this->connected) {
+            $this->connect();
+        }
         $pstmt = $this->pdo->prepare($sql);
         foreach ((array) $params as $key => $val) {
             $pstmt->bindValue($key, $val);

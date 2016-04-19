@@ -8,14 +8,14 @@
 
 namespace Controller;
 
-use MicroMan\MicroController;
+use MicroMan\MicroDatabase;
 use MicroMan\MicroUtility;
 use Model\CostTypeModel;
 use Model\RecordModel;
 use Utility\ValidateHelper;
 use Model\UserModel;
 
-class IndexController extends MicroController
+class IndexController extends BaseController
 {
     /**
      * 主页.
@@ -25,23 +25,19 @@ class IndexController extends MicroController
         $user_obj = UserModel::getInstance();
         $record_obj = RecordModel::getInstance();
         $cost_type_obj = CostTypeModel::getInstance();
-        $user_info = $user_obj->getOne(array('id' => $_SESSION['uid']));
-
         $table = $record_obj->getTableName();
         //数据库中记录的每个人的消费,每种类型的消费
-        $each_user_cost = $record_obj->query("select uid, sum(cost) as cost from {$table} where is_deal=0 and is_delete = 0 group by uid");
-        $each_type_cost = $record_obj->query("select type, sum(cost) as cost form {$table} where is_deal = 0 and is_delete = 0 group by type");
-        $records = $record_obj->getAll();
+        $each_user_cost = $record_obj->query("select paid_uid, sum(cost) as cost from {$table} where is_deal=0 and is_delete = 0 group by paid_uid");
+        $each_type_cost = $record_obj->query("select `type`, sum(cost) as `cost` from {$table} where is_deal = 0 and is_delete = 0 group by `type`");
         //总的消费记录
         $total_cost = array_sum(array_map(function ($data) {return $data['cost'];}, $each_user_cost));
-
-        //现有用户列表.
-        $user_lst = $user_obj->getAll(null, 'id, nickname', 'id');
+        $total_cost = $total_cost ? $total_cost : 1;
 
         //初始化用户信息.
         $user_data = array();
-        foreach ($user_lst as $uid => $user) {
+        foreach ($this->user_lst as $uid => $user) {
             $user_data[$uid] = array(
+                'nickname' => $user['nickname'],
                 'percent' => 0,
                 'cost' => 0,
                 'benefit' => 0,
@@ -50,30 +46,29 @@ class IndexController extends MicroController
 
         //个人暂未结算金额比例计算,为了保证总和100%，此处最后一个的计算使用100-其他。
         for ($cnt = count($each_user_cost), $i = 0, $percent_cnt = 0; $i < $cnt; ++$i) {
-            $uid = $each_user_cost[$i]['uid'];
+            $uid = $each_user_cost[$i]['paid_uid'];
             $percent = 100 * number_format($each_user_cost[$i]['cost'] / $total_cost, 4, '.', '');
             if ($i == $cnt - 1) {
                 $percent = 100 - $percent_cnt;
             }
             $percent_cnt += $percent;
             $user_data[$uid] = array(
+                'nickname' => $this->user_lst[$uid]['nickname'],
                 'percent' => $percent,
                 'cost' => number_format($each_user_cost[$i]['cost'], 2, '.', ''),
                 'benefit' => 0,
             );
         }
-
-        $type_map = $cost_type_obj->getAll();
-
         //各类型消费统计
         for ($cnt = count($each_type_cost), $i = 0, $percent_cnt = 0;$i < $cnt;++$i) {
             $percent = 100 * number_format($each_type_cost[$i]['cost'] / $total_cost, 4, '.', '');
-            $who_arr = $type_map[$each_type_cost[$i]['type']];
+            $type_info = $this->type_map[$each_type_cost[$i]['type']];
+            $who_arr = explode(',', $type_info['who']);
             $avg_cost = $each_type_cost[$i]['cost'] / count($who_arr);
             foreach ($who_arr as $who) {
                 $user_data[$who]['benefit'] += $avg_cost;
             }
-            $each_type_cost[$i]['who'] = implode(',', $who_arr);
+            $each_type_cost[$i]['description'] = $type_info['description'];
             if ($i == $cnt - 1) {
                 $percent = 100 - $percent_cnt;
             }
@@ -81,99 +76,21 @@ class IndexController extends MicroController
             $each_type_cost[$i]['percent'] = $percent;
             $each_type_cost[$i]['cost'] = number_format($each_type_cost[$i]['cost'], 2, '.', '');
         }
-        $current_uid = $user_info['id'];
+        $current_uid = $this->user_info['id'];
         $current_user_cost = array(
             'cost' => number_format($user_data[$current_uid]['benefit'], 2, '.', ''),
             'settlement' => number_format($user_data[$current_uid]['cost'] - $user_data[$current_uid]['benefit'], 2, '.', ''),
         );
-        $user_info = array_merge($user_info, $current_user_cost);
-        $header = array('ID', '支付人', '支付金额', '支付时间', '消费消费人', '支付描述', '是否结算', '操作');
+        $user_info = array_merge($this->user_info, $current_user_cost);
+        $records = $record_obj->getAll(array('is_delete' => 0, 'id, paid_uid, cost, paid_day, type, description, operator_uid, create_time, update_time, is_deal'));
+
         $response = array(
-            'user_lst' => $user_lst,
-            'header' => $header,
             'user_info' => $user_info,
             'each_type_cost' => $each_type_cost,
             'user_data' => $user_data,
-            'type_map' => $type_map,
             'records' => $records,
         );
         $this->displayTpl($response);
-    }
-
-    public function before()
-    {
-        parent::before(); // TODO: Change the autogenerated stub
-
-        if (!isset($_SESSION['uid']) && strcasecmp($this->action_name, 'login') !== 0) {
-            $this->redirectExit('/index/login');
-        }
-    }
-
-    /**
-     * 登录页面.
-     */
-    public function login()
-    {
-        $data = array(
-            'title' => '钱呢去哪儿呢 | Login',
-        );
-        if ($this->isPost()) {
-            $result = $this->doLogin();
-            if ($result === true) {
-                $this->redirectExit('/');
-            }
-            $data['error_msg'] = $result;
-        }
-        if (isset($_SESSION['uid'])) {
-            $this->redirectExit('/');
-        }
-        $this->displayTpl($data, null, false);
-    }
-
-    /**
-     * 登录操作.
-     *
-     * @return bool|string
-     */
-    private function doLogin()
-    {
-        $payloads = MicroUtility::getMultiPost(array('username', 'password'));
-        $validator = new ValidateHelper();
-        $rules = array(
-            array('username,password', 'required'), // 必须且非空
-            array('username,password', 'useRegex', 'reg' => '/[a-zA-Z0-9]{5,10}/'),
-        );
-        $result = $validator->addValidator(array())->isValid($payloads, $rules);
-        if ($result !== true) {
-            return $result[0];
-        }
-        $salt = 'MicroManWebApp';
-        //TODO: 加密用户密码.
-        #$payloads['password'] = md5($payloads['password'].$salt);
-        $user_info = UserModel::getInstance()->getOne($payloads);
-        if (empty($user_info)) {
-            return '用户名或密码错误';
-        }
-        $_SESSION['uid'] = $user_info['id'];
-        if (MicroUtility::getPost('remember') == 1) {
-            // write cookie to auto login.
-        }
-
-        return true;
-    }
-
-    /**
-     * 退出登录.仅POST才会退出.
-     */
-    public function logout()
-    {
-        if (!$this->isPost()) {
-            $this->page404();
-        } else {
-            session_destroy();
-            $_SESSION = array();
-            $this->redirectExit('/index/login');
-        }
     }
 
     /**
@@ -182,11 +99,12 @@ class IndexController extends MicroController
     public function search()
     {
         $query = MicroUtility::getGet('q');
+        // search what ?
         $this->forbidden();
     }
 
     /**
-     *
+     * ajax用来增加/修改/结算的API.
      */
     public function command()
     {
@@ -208,7 +126,7 @@ class IndexController extends MicroController
                 $this->dealBatchCommand();
                 break;
             default:
-                $this->displayJson(array('error' => 0, 'msg' => 'invalid action'));
+                $this->displayErrorJson('不合法的操作');
         }
     }
 
@@ -217,14 +135,66 @@ class IndexController extends MicroController
      */
     private function addCommand()
     {
-        //TODO: add validator and logs.
-        $new_data = MicroUtility::getMultiPost(array('paid_username', 'cost', 'when', 'type', 'description'));
-        $result = true;
-        if (!$result) {
-            $this->displayJson(array('error' => 1, 'msg' => '加入失败'));
+        $payloads = $this->parseInsertOrUpdateParams(false);
+        // http://stackoverflow.com/questions/2374631/pdoparam-for-dates
+        // 如果timestamp字段得以字符串的形式传入,为了简单,所以我把timestamp的格式直接以int形式存取.
+        $new_data = array(
+            'operator_uid' => $_SESSION['uid'],
+            'create_time' => time(),
+            'update_time' => time(),
+        );
+        // 组装成为DB中的字段,以方便数据插入DB.
+        $new_data = array_merge($new_data, $payloads);
+        $last_insert_id = RecordModel::getInstance()->insert($new_data, MicroDatabase::INSERT_IN_DUP_NONE);
+        if ($last_insert_id) {
+            $this->displaySuccessJson(null, '添加成功');
         } else {
-            $this->displayJson(array('error' => 0, 'msg' => '加入成功'));
+            $this->displayErrorJson('添加失败!');
         }
+    }
+
+    /**
+     * 处理@insertCommand和@updateCommand需要用到的参数.
+     *
+     * 如果参数$check_id为false,则不进行检查ID,此时参数代表的是insert.
+     * 如果参数$check_id为true,则进行检查ID,此时参数代码的是update.
+     *
+     * @param bool $need_id 是否需要ID.
+     *
+     * @return array|bool
+     */
+    private function parseInsertOrUpdateParams($need_id = false)
+    {
+        $keys = array('paid_uid', 'cost', 'paid_day', 'type', 'description');
+        if ($need_id) {
+            $keys[] = 'id';
+        }
+        $payloads = MicroUtility::getMultiPost($keys);
+        $validator = new ValidateHelper();
+        $all_user_id = UserModel::getInstance()->getAll(null, 'id', 'id');
+        $all_type_id = CostTypeModel::getInstance()->getAll(null, 'id', 'id');
+        $allowed_type_id_arr = array_keys($all_type_id);
+        $allowed_paid_id_arr = array_keys($all_user_id);
+        //TODO:成员in_array检查不严谨 @see http://php.net/manual/zh/function.in-array.php#106319
+        $rules = array(
+            array(implode(',', $keys), 'required'), // 必须且非空
+            array('paid_day', 'date'),
+            array('cost', 'float'),
+            array('paid_uid', 'enums', 'haystack' => $allowed_paid_id_arr),
+            array('type', 'enums', 'haystack' => $allowed_type_id_arr),
+        );
+        //如果需要ID,需要加上ID参数的检查.
+        if ($need_id) {
+            $rules[] = array('id', 'required');
+            $rules[] = array('id', 'integer');
+        }
+        $result = $validator->isValid($payloads, $rules);
+        if ($result !== true) {
+            $this->displayErrorJson($result[0]);
+        }
+        $payloads['description'] = htmlspecialchars($payloads['description']);
+
+        return $payloads;
     }
 
     /**
@@ -232,13 +202,22 @@ class IndexController extends MicroController
      */
     private function updateCommand()
     {
-        $id = $_POST['id'];
-        $new_data = MicroUtility::getMultiPost(array('paid_username', 'cost', 'when', 'type', 'description'));
-        if (empty($id) || !is_numeric($id)) {
-            die(json_encode(array('error' => 1, 'msg' => '参数不合法')));
+        $payloads = $this->parseInsertOrUpdateParams(true);
+        $id = $payloads['id'];
+        $params = $payloads;
+        unset($params['id']);
+        $params['update_time'] = time();
+        $condition = array(
+            'id' => $id, // 更新指定的记录ID.
+            'is_delete' => 0, // 没有删除的数据.
+            'is_deal' => 0, // 没有结算处理的数据.
+        );
+        $result = RecordModel::getInstance()->update($params, $condition);
+        if ($result === false) {
+            $this->displayErrorJson('更新失败!');
+        } else {
+            $this->displaySuccessJson(null, '更新成功');
         }
-        $result = true;
-        $this->displayJson(array('error' => $result ? 0 : 1, 'msg' => $result ? '成功' : '失败'));
     }
 
     /**
@@ -250,8 +229,12 @@ class IndexController extends MicroController
         if (empty($id) || !is_numeric($id)) {
             die(json_encode(array('error' => 1, 'msg' => '参数不合法')));
         }
-        $result = false;
-        $this->displayJson(array('error' => $result ? 0 : 1, 'msg' => $result ? '成功' : '失败'));
+        $result = RecordModel::getInstance()->update(array('is_deal' => 1), array('id' => $id, 'is_delete' => 0));
+        if ($result === false) {
+            $this->displayErrorJson('处理结算失败!');
+        } else {
+            $this->displaySuccessJson(null, '处理结算成功');
+        }
     }
 
     /**
@@ -259,6 +242,11 @@ class IndexController extends MicroController
      */
     private function dealBatchCommand()
     {
-        $this->page404();
+        $result = RecordModel::getInstance()->update(array('is_deal' => 1), array('is_delete' => 0));
+        if ($result === false) {
+            $this->displayErrorJson('全部结算失败!');
+        } else {
+            $this->displaySuccessJson(null, '全部结算成功');
+        }
     }
 }

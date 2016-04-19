@@ -10,7 +10,7 @@ require_once '../MicroMan/MicroMan.php';
 
 //fixed my session bug.
 session_save_path('/tmp');
-
+ini_set('date.timezone', 'Asia/Chongqing');
 $site_info = array(
     'template_path' => implode(DIRECTORY_SEPARATOR, array(APP_ROOT, 'View', 'Tpl')).DIRECTORY_SEPARATOR,
     'site_name' => 'MicroMoney',

@@ -8,15 +8,14 @@
 
 namespace Controller;
 
-use MicroMan\MicroController;
-
-class LogsController extends MicroController
+class LogsController extends BaseController
 {
     /**
      * 查看日志.
      */
     public function view()
     {
-        $this->page404();
+        $this->tpl_engine->assign('title', '操作日志');
+        $this->displayTpl();
     }
 }

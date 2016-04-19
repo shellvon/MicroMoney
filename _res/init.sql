@@ -7,7 +7,7 @@
 #
 # Host: 127.0.0.1 (MySQL 5.7.11)
 # Database: money
-# Generation Time: 2016-04-16 11:26:44 +0000
+# Generation Time: 2016-04-19 09:13:34 +0000
 # ************************************************************
 
 
@@ -20,6 +20,28 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 
+# Dump of table cost_records
+# ------------------------------------------------------------
+
+DROP TABLE IF EXISTS `cost_records`;
+
+CREATE TABLE `cost_records` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `cost` float NOT NULL COMMENT '消费金额',
+  `description` varchar(255) DEFAULT NULL COMMENT '消费描述',
+  `paid_day` datetime DEFAULT NULL COMMENT '消费日期',
+  `type` int(11) unsigned NOT NULL COMMENT '消费类型ID',
+  `operator_uid` int(11) DEFAULT NULL COMMENT '操作人ID',
+  `is_deal` int(11) NOT NULL DEFAULT '0' COMMENT '是否结算',
+  `is_delete` int(11) NOT NULL DEFAULT '0' COMMENT '是否删除',
+  `create_time` int(11) DEFAULT NULL COMMENT '添加记录时间',
+  `update_time` int(11) DEFAULT NULL COMMENT '更新时间',
+  `paid_uid` int(11) DEFAULT NULL COMMENT '支付人uid',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+
 # Dump of table cost_type
 # ------------------------------------------------------------
 
@@ -28,18 +50,10 @@ DROP TABLE IF EXISTS `cost_type`;
 CREATE TABLE `cost_type` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `who` text,
+  `description` text,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-LOCK TABLES `cost_type` WRITE;
-/*!40000 ALTER TABLE `cost_type` DISABLE KEYS */;
-
-INSERT INTO `cost_type` (`id`, `who`)
-VALUES
-	(1,'张三,李四,王老麻子');
-
-/*!40000 ALTER TABLE `cost_type` ENABLE KEYS */;
-UNLOCK TABLES;
 
 
 # Dump of table user
@@ -53,7 +67,7 @@ CREATE TABLE `user` (
   `username` varchar(40) NOT NULL DEFAULT '' COMMENT '用户名',
   `password` varchar(40) NOT NULL DEFAULT '' COMMENT '密码',
   `avatar` varchar(255) DEFAULT NULL COMMENT '头像',
-  `register_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
+  `register_time` int(11) NOT NULL COMMENT '注册时间',
   `job` varchar(100) DEFAULT NULL COMMENT '工作',
   `gender` int(11) DEFAULT '0' COMMENT '性别',
   PRIMARY KEY (`id`),
@@ -65,31 +79,10 @@ LOCK TABLES `user` WRITE;
 
 INSERT INTO `user` (`id`, `nickname`, `username`, `password`, `avatar`, `register_time`, `job`, `gender`)
 VALUES
-	(1,'shellvon','admin','admin','/dist/img/user2-160x160.jpg','2016-04-15 00:30:39','Web Developer',0),
-	(2,'amdin','demo','helloword','/dist/img/user1-160x160.jpg','2016-04-16 14:23:00','DBA',0);
+	(4,'shellvon','helloword','helloword','/dist/img/avatar0.png',1461056474,'helloword',0);
 
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
-
-
-# Dump of table cost_records
-# ------------------------------------------------------------
-
-DROP TABLE IF EXISTS `cost_records`;
-
-CREATE TABLE `cost_records` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `uid` int(11) NOT NULL,
-  `cost` float NOT NULL COMMENT '消费金额',
-  `description` varchar(255) DEFAULT NULL COMMENT '消费描述',
-  `when` datetime DEFAULT NULL COMMENT '消费时间',
-  `type` int(11) unsigned NOT NULL COMMENT '消费类型ID',
-  `operator_uid` int(11) DEFAULT NULL COMMENT '操作人ID',
-  `is_deal` int(11) NOT NULL DEFAULT '0' COMMENT '是否结算',
-  `is_delete` int(11) NOT NULL DEFAULT '0' COMMENT '是否删除',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
 
 
 

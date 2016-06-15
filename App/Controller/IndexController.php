@@ -11,7 +11,10 @@ namespace Controller;
 use MicroMan\MicroDatabase;
 use MicroMan\MicroUtility;
 use Model\CostTypeModel;
+use Model\LogModel;
+use Model\NotificationModel;
 use Model\RecordModel;
+use Model\UserNotifyModel;
 use Utility\ValidateHelper;
 use Model\UserModel;
 
@@ -22,9 +25,7 @@ class IndexController extends BaseController
      */
     public function index()
     {
-        $user_obj = UserModel::getInstance();
         $record_obj = RecordModel::getInstance();
-        $cost_type_obj = CostTypeModel::getInstance();
         $table = $record_obj->getTableName();
         //数据库中记录的每个人的消费,每种类型的消费
         $each_user_cost = $record_obj->query("select paid_uid, sum(cost) as cost from {$table} where is_deal=0 and is_delete = 0 group by paid_uid");
@@ -147,9 +148,35 @@ class IndexController extends BaseController
         $new_data = array_merge($new_data, $payloads);
         $last_insert_id = RecordModel::getInstance()->insert($new_data, MicroDatabase::INSERT_IN_DUP_NONE);
         if ($last_insert_id) {
+            // add operation log.
+            $content = '添加了一个'.$new_data['cost'].'元的交易,ID为:'.$last_insert_id;
+            $action = NotificationModel::ACTION_INSERT_DEAL;
+            $this->sendRemindToAllUser($action, $content);
+            LogModel::getInstance()->addLogs($action, $_SESSION['uid'], $new_data);
             $this->displaySuccessJson(null, '添加成功');
         } else {
             $this->displayErrorJson('添加失败!');
+        }
+    }
+
+    /**
+     * 通知用户操作结果.
+     *
+     * @param $action
+     * @param $content
+     */
+    private function sendRemindToAllUser($action, $content)
+    {
+        $notify_id = NotificationModel::getInstance()->createNotification(
+            $_SESSION['uid'],
+            $content,
+            $action,
+            NotificationModel::NOTIFICATION_TYPE_REMIND
+        );
+        $all_user = $this->user_lst;
+        $all_user_ids = array_keys($all_user);
+        foreach ($all_user_ids as $id) {
+            UserNotifyModel::getInstance()->createNotify($notify_id, $id);
         }
     }
 
@@ -212,10 +239,16 @@ class IndexController extends BaseController
             'is_delete' => 0, // 没有删除的数据.
             'is_deal' => 0, // 没有结算处理的数据.
         );
+        $old_data =  RecordModel::getInstance()->getOne($condition);
         $result = RecordModel::getInstance()->update($params, $condition);
         if ($result === false) {
             $this->displayErrorJson('更新失败!');
         } else {
+            // add operation log.
+            $content = '更新了一个deal';
+            $action = NotificationModel::ACTION_UPDATE_DEAL;
+            LogModel::getInstance()->addLogs($action, $_SESSION['uid'], $params, $old_data);
+            $this->sendRemindToAllUser($action, $content);
             $this->displaySuccessJson(null, '更新成功');
         }
     }
@@ -233,6 +266,11 @@ class IndexController extends BaseController
         if ($result === false) {
             $this->displayErrorJson('处理结算失败!');
         } else {
+            // add operation log.
+            $content = '结算了一个deal';
+            $action = NotificationModel::ACTION_SINGLE_DEAL;
+            $this->sendRemindToAllUser($action, $content);
+            LogModel::getInstance()->addLogs($action, $_SESSION['uid'], array('id' => $id));
             $this->displaySuccessJson(null, '处理结算成功');
         }
     }
@@ -242,10 +280,16 @@ class IndexController extends BaseController
      */
     private function dealBatchCommand()
     {
+        $old_data = RecordModel::getInstance()->getAll(array('is_deal' => 0, 'is_delete' => 0));
         $result = RecordModel::getInstance()->update(array('is_deal' => 1), array('is_delete' => 0));
         if ($result === false) {
             $this->displayErrorJson('全部结算失败!');
         } else {
+            // add operation log.
+            $content = '批量结算deal';
+            $action = NotificationModel::ACTION_BATCH_DEAL;
+            $this->sendRemindToAllUser($action, $content);
+            LogModel::getInstance()->addLogs($action, $_SESSION['uid'], null, $old_data);
             $this->displaySuccessJson(null, '全部结算成功');
         }
     }

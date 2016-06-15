@@ -14,7 +14,7 @@ use Model\CostTypeModel;
 
 class BaseController extends MicroController
 {
-    private $no_login_action_lst = array('login', 'register');
+    private $no_login_action_lst = array('login', 'register', 'exists');
 
     protected $user_info = null;
     protected $user_lst = null;

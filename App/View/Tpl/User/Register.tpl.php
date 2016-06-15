@@ -20,6 +20,11 @@
     <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
     <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
+    <style>
+        .login-box-msg{
+            color: red;
+        }
+    </style>
 </head>
 <body class="login-page">
 <div class="login-box">
@@ -27,7 +32,7 @@
         <a href="/"><?php echo $site_info['site_logo']['large']?></a>
     </div><!-- /.login-logo -->
     <div class="login-box-body">
-        <p class="login-box-msg"><?php echo isset($error_msg) ? $error_msg : '';?></p>
+        <p class="login-box-msg" id="error-box-msg"><?php echo isset($error_msg) ? $error_msg : '';?></p>
         <form method="post">
             <div class="form-group has-feedback">
                 <input name='nickname' type="text" class="form-control" placeholder="nickname" />
@@ -75,6 +80,33 @@
             radioClass: 'iradio_square-blue',
             increaseArea: '20%' // optional
         });
+
+        var msgbox = $('#error-box-msg');
+
+        $('input[name="nickname"]').blur(function(){
+            var name = $(this).val();
+            if (name == '') {
+                msgbox.text('昵称不可以为空');
+            } else {
+                $.get('/user/exists', {'nickname': name}, function(data){
+                    if (data.error) {
+                        msgbox.text(data.msg);
+                    }
+                } )
+            }
+        })
+        $('input[name="username"]').blur(function(){
+            var name = $(this).val();
+            if (name == '') {
+                msgbox.text('用户名不可以为空');
+            } else {
+                $.get('/user/exists', {'username': name}, function(data){
+                    if (data.error) {
+                        msgbox.text(data.msg);
+                    }
+                } )
+            }
+        })
     });
 </script>
 </body>

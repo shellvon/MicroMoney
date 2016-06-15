@@ -93,8 +93,11 @@ class MicroMan
         $class_name = "\\Controller\\{$controller_name}Controller";
         $controller = new $class_name($this, ucfirst($controller_name), ucfirst($action_name));
         $controller->before();
+        $ajax_action_name = 'ajax'.$action_name;
         if (method_exists($controller, $action_name)) {
             $controller->$action_name();
+        } else if (MicroUtility::isAjax() && method_exists($controller, $ajax_action_name)){
+            $controller->$ajax_action_name();
         } else {
             $controller->page404();
         }
@@ -281,7 +284,7 @@ class MicroController
      */
     public function isAjax()
     {
-        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strcasecmp('XMLHttpRequest', $_SERVER['HTTP_X_REQUESTED_WITH']) === 0;
+        return MicroUtility::isAjax();
     }
 
     /**
@@ -291,7 +294,7 @@ class MicroController
      */
     public function isPost()
     {
-        return strtolower($_SERVER['REQUEST_METHOD']) === 'post';
+        return MicroUtility::isPost();
     }
 }
 
@@ -386,6 +389,16 @@ class MicroModel
     public function update($params, $condition)
     {
         return $this->db_engine->update($this->getTableName(), $params, $condition);
+    }
+
+    /**
+     * 获取数据库引擎.
+     *
+     * @return MicroDatabase
+     */
+    public function getDbEngine()
+    {
+        return $this->db_engine;
     }
 }
 
@@ -689,6 +702,26 @@ class MicroUtility
 
         return $result;
     }
+
+    /**
+     * 是否为ajax请求.
+     *
+     * @return bool
+     */
+    public static function isAjax()
+    {
+        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strcasecmp('XMLHttpRequest', $_SERVER['HTTP_X_REQUESTED_WITH']) === 0;
+    }
+
+    /**
+     * 是否为POST请求.
+     *
+     * @return bool
+     */
+    public static function isPost()
+    {
+        return strtolower($_SERVER['REQUEST_METHOD']) === 'post';
+    }
 }
 
 /**
@@ -941,6 +974,9 @@ class MicroDatabase
     private function bindValue(&$pstmt, $data, $prefix = '')
     {
         foreach ((array) $data as $key => $val) {
+            if (is_array($val)) {
+                continue;
+            }
             $pstmt->bindValue(':'.$prefix.$key, $val);
         }
 
@@ -1064,7 +1100,11 @@ class MicroDatabase
             } else {
                 $str_added = true;
             }
-            $sql .= "{$key} = :{$prefix}{$key}";
+            if (is_array($val)) {
+                $sql .= "{$key} in (". implode(',', $val).')';
+            } else {
+                $sql .= "{$key} = :{$prefix}{$key}";
+            }
         }
 
         return $sql;

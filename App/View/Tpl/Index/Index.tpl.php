@@ -101,7 +101,7 @@ EOT;
 
                         <div class="box-body">
 
-                            <form class="form-group" method="get" action="index.php">
+                            <form class="form-group" method="get" action="#">
 
                                 <div class="input-group input-prepend input-append">
                                     <div class="input-group-addon">

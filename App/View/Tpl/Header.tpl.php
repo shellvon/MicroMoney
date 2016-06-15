@@ -27,6 +27,19 @@
         .datepicker{
             z-index:1151 !important;
         }
+        .#operation-logs{
+            word-wrap: break-word;
+            word-break: break-all;
+         }
+        .log-data{
+            overflow-x: scroll;
+            width: 240px;
+        }
+        a.table-actions {
+            display: block;
+            float: left;
+            width: 15%;
+        }
     </style>
 </head>
 <body class="skin-blue sidebar-mini">
@@ -50,6 +63,21 @@
                 </a>
                 <div class="navbar-custom-menu">
                     <ul class="nav navbar-nav">
+                        <!-- Messages: style can be found in dropdown.less-->
+                        <li id='remind-message' class="dropdown messages-menu">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                                <i class="fa fa-envelope-o"></i>
+                                <span class="label label-success"></span>
+                            </a>
+
+                        </li>
+                        <!-- Notifications: style can be found in dropdown.less -->
+                        <li id='sys-message' class="dropdown notifications-menu">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                                <i class="fa fa-bell-o"></i>
+                                <span class="label label-warning"></span>
+                            </a>
+                        </li>
 
                         <!-- User Account: style can be found in dropdown.less -->
                         <li class="dropdown user user-menu">
@@ -63,7 +91,7 @@
                                     <img src="<?php echo $site_info['static_resource_path'].'/'.$user_info['avatar']?>" class="img-circle" alt="User Image" />
                                     <p>
                                         <?php echo $user_info['nickname'].'-'.$user_info['job']?>
-                                        <small>Member since Nov. 2012</small>
+                                        <small>Member since <?php echo date('F, Y', $user_info['register_time'])?></small>
                                     </p>
                                 </li>
                                 <!-- Menu Body -->
@@ -184,7 +212,7 @@
                                 <img src="<?php echo $site_info['static_resource_path'].'/'.$user_info['avatar']?>" class="center-block img-circle" alt="User Image" />
                                 <div class="text-center text-blue">
                                     <?php echo $user_info['nickname'].'-'.$user_info['job']?>
-                                    <div class="text-center text-black">Member since Nov. 2012</div>
+                                    <div class="text-center text-black">Member since <?php echo date('F, Y', $user_info['register_time'])?></div>
                                 </div>
                             </div>
                             <!-- Menu Body -->
@@ -272,7 +300,6 @@
                 var action = $(this).data('action');
                 var form = $("#updateModal").find('.form-group');
                 var title_el =  $("#updateModal").find('h4.modal-title');
-                console.log('click me:'+action);
                 if (action == 'update') {
                     var el = $('#row-'+id+'>td');
                     $("#modified").data('id',id);
@@ -295,9 +322,9 @@
 
                     $(title_el).text('新增记录');
                     $("#modified").data('action',action);
-                    var default_name = "<?php echo $user_info['nickname'];?>";
+                    var default_id = "<?php echo $user_info['id'];?>";
                     //默认为当前用户
-                    $(form[0]).find('option[value="'+default_name+'"]').attr('selected','selected');
+                    $(form[0]).find('option[value="'+default_id+'"]').attr('selected','selected');
                     //默认为当前时间
                     Date.prototype.Y_m_d = function() {
                         var yyyy = this.getFullYear().toString();
@@ -320,7 +347,7 @@
             $('button[data-action]').click(function(){
                 var params = {id:$(this).data('id'),action:$(this).data('action')};
                 var form = $("#updateModal").find('.form-group');
-                console.log(params);
+                // console.log(params);
                 if ('deal' != params.action && 'dealBatch' != params.action) {
                     var form = $("#updateModal").find('.form-group');
                     params['paid_uid'] =  $(form[0]).find('option:selected').val();

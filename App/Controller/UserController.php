@@ -9,8 +9,10 @@
 namespace Controller;
 
 use Model\CostTypeModel;
+use Model\NotificationModel;
 use Model\UserModel;
 use MicroMan\MicroUtility;
+use Model\UserNotifyModel;
 use Utility\Utility;
 use Utility\ValidateHelper;
 
@@ -56,7 +58,6 @@ class UserController extends BaseController
             return $result[0];
         }
         $salt = 'MicroManWebApp';
-        //TODO: 加密用户密码.
         #$payloads['password'] = md5($payloads['password'].$salt);
         $user_info = UserModel::getInstance()->getOne($payloads);
         if (empty($user_info)) {
@@ -118,7 +119,7 @@ class UserController extends BaseController
             array(implode(',', $keys), 'required'), // 必须且非空
             array('username,password,repeat_password', 'useRegex', 'reg' => '/^[a-zA-Z0-9]{5,10}$/'),
             array('nickname', 'useRegex', 'reg' => '/^\p{Han}{1,4}$/u'), //1~4个汉字.
-            array('job', 'useRegex', 'reg' => '/^[a-zA-Z]{1,10}(?: [a-z0-9]{1,10})?$/u'), //工作是英文描述,最多允许中间一个空格.
+            array('job', 'useRegex', 'reg' => '/^[a-zA-Z]{1,10}(?: [a-z0-9]{1,10})?$/ui'), //工作是英文描述,最多允许中间一个空格.
         );
         if ($payloads['password'] != $payloads['repeat_password']) {
             return '用户密码不一致';
@@ -141,35 +142,143 @@ class UserController extends BaseController
         if (!$last_insert_id) {
             return '系统繁忙,注册失败';
         }
-        $all_user = $this->user_lst;
-        $all_user_ids = array_keys($all_user);
-        // 用户注册时候写入所有出现的用户组合可能.
-        $all_combination = Utility::combination($all_user_ids);
         $cost_type_obj = CostTypeModel::getInstance();
-        foreach ($all_combination as $maybe) {
-            $maybe[] = $last_insert_id;
-            sort($maybe);
-            // 恶心的写法.
-            $nickname_lst = array_map(function ($el) use ($all_user) {
-                return $all_user[$el]['nickname'];
-                    }, $maybe);
+        if (empty($this->type_map)) {
+            // 第一次注册,消费类型可以为一个人,之后都不允许一个人的情况.
             $cost_type_obj->insert(
                 array(
-                    'who' => implode(',', $maybe),
-                    'description' => implode(',', $nickname_lst),
+                    'who' => $last_insert_id,
+                    'description' => $new_user['nickname']
                 )
             );
+        } else {
+            foreach ($this->type_map as $el) {
+                $cost_type_obj->insert(
+                    array(
+                        'who' => $el['who'].','.$last_insert_id,
+                        'description' => $el['description'].','.$new_user['nickname'],
+                    )
+                );
+            }
         }
-        $_SESSION['uid'] = $last_insert_id;
+        $this->sendRegisterMsgToAllUser($last_insert_id);
 
+        $_SESSION['uid'] = $last_insert_id;
         return true;
     }
 
     /**
-     * 个人资料.
+     *
+     * @param $who
      */
-    public function profile()
+
+    private function sendRegisterMsgToAllUser($who){
+        $notify_id = NotificationModel::getInstance()->createNotification(
+            $who,
+            '注册为新用户',
+            NotificationModel::ACTION_REGISTER,
+            NotificationModel::NOTIFICATION_TYPE_SYS_MESSAGE);
+        $all_user = $this->user_lst;
+        $all_user_ids = array_keys($all_user);
+        $all_user_ids[] = $who; // 通知自己.
+        foreach ($all_user_ids as $id) {
+            UserNotifyModel::getInstance()->createNotify($notify_id, $id);
+        }
+    }
+
+    /**
+     * 检查用户名之类的是否已经存在.
+     */
+    public function ajaxExists()
     {
-        $this->forbidden();
+        $nickname = MicroUtility::getGet('nickname');
+        $username = MicroUtility::getGet('username');
+
+        // TODO: sql inject.
+        if (!empty($nickname)) {
+            $type = '昵称';
+            $condition = array('nickname' => $nickname);
+        } elseif (!empty($username)) {
+            $type = '用户名';
+            $condition = array('username' => $username);
+        } else {
+            $this->displayErrorJson('用户名/昵称不能为空', 2);
+        }
+        $exists = UserModel::getInstance()->getOne($condition);
+        if ($exists) {
+            $this->displayErrorJson('该'.$type.'已存在', 1);
+        } else {
+            $this->displaySuccessJson('该'.$type.'可用');
+        }
+    }
+
+    /**
+     * 获取系统通知.
+     * 比如用户注册信息.
+     */
+    public function ajaxMessage()
+    {
+        $uid = isset($_SESSION['uid']) ? $_SESSION['uid'] : 0;
+        $message = UserNotifyModel::getInstance()->getSysMessage($uid);
+        $size = count($message);
+        $data = array(
+            'count' => $size,
+            'list' => $message,
+        );
+        $this->displaySuccessJson($data);
+    }
+
+
+    /**
+     * 获取操作消息.
+     */
+    public function ajaxRemind()
+    {
+        $uid = isset($_SESSION['uid']) ? $_SESSION['uid'] : 0;
+        $reminds = UserNotifyModel::getInstance()->getRemind($uid);
+        $size = count($reminds);
+        $data = array(
+            'count' => $size,
+            'list' => $reminds,
+        );
+        $this->displaySuccessJson($data);
+    }
+
+
+    /**
+     * 将未读消息设置为已读.
+     */
+    public function ajaxRead()
+    {
+        $uid = isset($_SESSION['uid']) ? $_SESSION['uid'] : 0;
+        $notify_id_str = MicroUtility::getPost('notify_ids');
+        $regex = '/^\d+(?:,\d+)*$/u';
+        if (!preg_match($regex, $notify_id_str) || $uid == 0) {
+            $this->displayErrorJson('参数异常');
+        }
+        $condition = array(
+            'receiver' => $uid,
+            'notify_id' => explode(',', $notify_id_str)
+        );
+        UserNotifyModel::getInstance()->update(array('is_read' => 1), $condition);
+        $this->displaySuccessJson('操作成功');
+    }
+
+    /**
+     * 用户资料.
+     */
+    public function ajaxProfile()
+    {
+        $uid = MicroUtility::getGet('uid');
+        if (!ctype_digit($uid) || $uid == 0) {
+            $this->displayErrorJson('参数错误');
+        }
+        $user = UserModel::getInstance()->getOne(array('id' => $uid), 'job, avatar, register_time, nickname');
+        if (empty($user)) {
+            $this->displayErrorJson('无此用户');
+        }
+        $user['reg_time'] = date('F, Y', $user['register_time']);
+        unset($user['register_time']);
+        $this->displaySuccessJson($user);
     }
 }

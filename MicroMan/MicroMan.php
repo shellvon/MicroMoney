@@ -96,7 +96,7 @@ class MicroMan
         $ajax_action_name = 'ajax'.$action_name;
         if (method_exists($controller, $action_name)) {
             $controller->$action_name();
-        } else if (MicroUtility::isAjax() && method_exists($controller, $ajax_action_name)){
+        } elseif (MicroUtility::isAjax() && method_exists($controller, $ajax_action_name)) {
             $controller->$ajax_action_name();
         } else {
             $controller->page404();
@@ -1101,7 +1101,7 @@ class MicroDatabase
                 $str_added = true;
             }
             if (is_array($val)) {
-                $sql .= "{$key} in (". implode(',', $val).')';
+                $sql .= "{$key} in (".implode(',', $val).')';
             } else {
                 $sql .= "{$key} = :{$prefix}{$key}";
             }

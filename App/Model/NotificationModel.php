@@ -3,13 +3,12 @@
  * Created by PhpStorm.
  * User: shellvon
  * Date: 16/6/13
- * Time: 下午5:54
+ * Time: 下午5:54.
  */
 
 namespace Model;
 
 use MicroMan\MicroModel;
-
 
 class NotificationModel extends MicroModel
 {
@@ -19,27 +18,24 @@ class NotificationModel extends MicroModel
     const NOTIFICATION_TYPE_REMIND = 1;
 
     /**
-     * 系统消息,
+     * 系统消息,.
      */
     const NOTIFICATION_TYPE_SYS_MESSAGE = 2;
-
 
     public static $ALL_SUPPORTED_TYPE_MAP = array(
         self::NOTIFICATION_TYPE_REMIND => '提醒',
         self::NOTIFICATION_TYPE_SYS_MESSAGE => '系统消息',
     );
 
-
     /**
      * 定义一些常用的动作常量.
      */
-    const ACTION_REGISTER  = 'register';
+    const ACTION_REGISTER = 'register';
     const ACTION_UPDATE_PROFILE = 'update_profile';
     const ACTION_SINGLE_DEAL = 'single_deal';
     const ACTION_BATCH_DEAL = 'batch_deal';
     const ACTION_UPDATE_DEAL = 'update_deal';
     const ACTION_INSERT_DEAL = 'insert_deal';
-
 
     public static $ALL_ACTION_MAP = array(
         self::ACTION_REGISTER => '注册新用户',
@@ -54,7 +50,6 @@ class NotificationModel extends MicroModel
      * 表名.
      */
     const TABLE_NAME = 'notification';
-
 
     /**
      * @return static
@@ -92,8 +87,7 @@ class NotificationModel extends MicroModel
             'content' => $content,
             'action' => $action,
             'type' => $type,
-            'create_time' => $time
+            'create_time' => $time,
         ));
     }
-
 }

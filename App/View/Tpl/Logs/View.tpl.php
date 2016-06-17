@@ -53,7 +53,7 @@
                                 foreach ($operation_logs as $log) {
                                     $create_time = date('Y-m-d H:i:s', $log['create_time']);
                                     $action = $action_map[$log['action']];
-                                    echo "<tr>";
+                                    echo '<tr>';
                                     // id
                                     echo "<td>{$log['id']}</td>";
                                     // action

@@ -239,7 +239,7 @@ class IndexController extends BaseController
             'is_delete' => 0, // 没有删除的数据.
             'is_deal' => 0, // 没有结算处理的数据.
         );
-        $old_data =  RecordModel::getInstance()->getOne($condition);
+        $old_data = RecordModel::getInstance()->getOne($condition);
         $result = RecordModel::getInstance()->update($params, $condition);
         if ($result === false) {
             $this->displayErrorJson('更新失败!');

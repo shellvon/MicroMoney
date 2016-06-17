@@ -41,7 +41,7 @@ class LogsController extends BaseController
         }
         $response = array(
             'action_map' => NotificationModel::$ALL_ACTION_MAP,
-            'operation_logs' => $records
+            'operation_logs' => $records,
         );
         $this->displayTpl($response);
     }

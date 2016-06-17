@@ -13,7 +13,6 @@ use Model\NotificationModel;
 use Model\UserModel;
 use MicroMan\MicroUtility;
 use Model\UserNotifyModel;
-use Utility\Utility;
 use Utility\ValidateHelper;
 
 class UserController extends BaseController
@@ -148,7 +147,7 @@ class UserController extends BaseController
             $cost_type_obj->insert(
                 array(
                     'who' => $last_insert_id,
-                    'description' => $new_user['nickname']
+                    'description' => $new_user['nickname'],
                 )
             );
         } else {
@@ -164,15 +163,15 @@ class UserController extends BaseController
         $this->sendRegisterMsgToAllUser($last_insert_id);
 
         $_SESSION['uid'] = $last_insert_id;
+
         return true;
     }
 
     /**
-     *
      * @param $who
      */
-
-    private function sendRegisterMsgToAllUser($who){
+    private function sendRegisterMsgToAllUser($who)
+    {
         $notify_id = NotificationModel::getInstance()->createNotification(
             $who,
             '注册为新用户',
@@ -228,7 +227,6 @@ class UserController extends BaseController
         $this->displaySuccessJson($data);
     }
 
-
     /**
      * 获取操作消息.
      */
@@ -244,7 +242,6 @@ class UserController extends BaseController
         $this->displaySuccessJson($data);
     }
 
-
     /**
      * 将未读消息设置为已读.
      */
@@ -258,7 +255,7 @@ class UserController extends BaseController
         }
         $condition = array(
             'receiver' => $uid,
-            'notify_id' => explode(',', $notify_id_str)
+            'notify_id' => explode(',', $notify_id_str),
         );
         UserNotifyModel::getInstance()->update(array('is_read' => 1), $condition);
         $this->displaySuccessJson('操作成功');
